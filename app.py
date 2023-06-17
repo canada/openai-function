@@ -6,13 +6,7 @@ import json
 load_dotenv()
 
 openai.api_key = os.getenv('OPENAI_API_KEY')
-query = """
-与えられた商品名が1つ以上あります。
-それそれについて、在庫が0であるかどうか検査し、在庫が0である場合はその商品のサプライヤーに追加注文のメールを送ってください。
-在庫がある場合は何もしません。
-===
-みかん、ぶどう、バナナ
-"""
+query = "みかん、ぶどう、バナナについて、在庫が0であるか調べ、在庫が0の場合は商品のサプライヤーに追加注文のメールを送ってください。"
 
 stock = [
     {"item": "みかん", "stock": 0, "supplier_for_item": "温州コーポレーション"},
@@ -39,7 +33,7 @@ def send_mail(arguments):
     print("Function:\nreturns ")
     print({"status": "success"})
     print("""
- mail sent as follows
+mail sent as follows
 =====
 {}さま
 いつもお世話になっております。
@@ -105,27 +99,28 @@ def prettify_json(message_json):
     return json.dumps(message_json, ensure_ascii=False, indent=4)
 
 # ユーザープロンプト
-user_prompt = {"role": "user", "content": query}
-
-# 初回問い合わせ
-response = openai.ChatCompletion.create(
-    model="gpt-3.5-turbo-0613",
-    messages=[user_prompt],
-    # Function callを使うことを明示
-    functions=functions,
-    function_call="auto",
-)
-
-# AIの返答を取得
-message = response.choices[0]["message"]
-
-messages = []
+messages = [{"role": "user", "content": query}]
 
 # AIの返答にFunction callがある限り繰り返す
-while message.get('function_call'):
+while True:
+    # AIへ問い合わせ
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo-0613",
+        # 会話の履歴を与える
+        messages=messages,
+        # 関数の定義も毎回与える
+        functions=functions,
+        function_call="auto",
+        temperature=0.0,
+    )
+
+    # AIの返答を取得
+    message = response.choices[0]["message"]
     print("AI response: ")
     print(prettify_json(message))
     print()
+    
+    # 会話履歴に追加する
     messages.append(message)
 
     f_call = message["function_call"]
@@ -140,22 +135,11 @@ while message.get('function_call'):
         "name": f_call["name"],
         "content": function_response,
     })
+    
+    # 関数の呼び出しが必要であれば繰り返す
+    if not message.get('function_call'):
+        break
 
-    # 再問い合わせ
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo-0613",
-        messages=[
-            user_prompt,
-            # 過去のやりとりをすべて与える
-            *messages
-        ],
-        # 関数の定義も毎回与える
-        functions=functions,
-        function_call="auto",
-        temperature=0.0,
-    )
-    # AIの返答を取得
-    message = response.choices[0]["message"]
 
 # これ以上Functionを呼び出す必要がなくなった
 print("Chain finished!")
