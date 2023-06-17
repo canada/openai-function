@@ -120,6 +120,10 @@ while True:
     print(prettify_json(message))
     print()
     
+    # 関数の呼び出しが必要なければループから抜ける
+    if not message.get('function_call'):
+        break
+
     # 会話履歴に追加する
     messages.append(message)
 
@@ -135,14 +139,6 @@ while True:
         "name": f_call["name"],
         "content": function_response,
     })
-    
-    # 関数の呼び出しが必要であれば繰り返す
-    if not message.get('function_call'):
-        break
-
 
 # これ以上Functionを呼び出す必要がなくなった
 print("Chain finished!")
-print()
-print("AI response: ")
-print(prettify_json(message))
