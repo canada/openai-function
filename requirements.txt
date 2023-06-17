@@ -1,5 +1,2 @@
-flask
 python-dotenv
 openai
-langchain
-tiktoken
