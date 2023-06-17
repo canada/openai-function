@@ -142,3 +142,6 @@ while True:
 
 # これ以上Functionを呼び出す必要がなくなった
 print("Chain finished!")
+print()
+print("Result:")
+print(message["content"])
